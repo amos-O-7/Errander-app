@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
+import OtpVerify from "@/pages/otp-verify";
 import CustomerHome from "@/pages/customer/home";
 import PostTask from "@/pages/customer/post-task";
 import CustomerBids from "@/pages/customer/bids";
@@ -45,7 +46,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/auth" component={Auth} />
-      
+      <Route path="/auth/verify-otp" component={OtpVerify} />
+
       {/* Customer Routes */}
       <Route path="/customer/home" component={CustomerHome} />
       <Route path="/customer/post" component={PostTask} />
@@ -53,7 +55,7 @@ function Router() {
       <Route path="/customer/errand/:id" component={TaskStatus} />
       <Route path="/customer/search" component={CustomerSearch} />
       <Route path="/customer/activity" component={CustomerActivity} />
-      
+
       {/* Errander Routes */}
       <Route path="/errander/home" component={ErranderHome} />
       <Route path="/errander/verification-pending" component={VerificationPending} />
@@ -64,11 +66,11 @@ function Router() {
       <Route path="/errander/wallet" component={Wallet} />
       <Route path="/profile" component={Profile} />
       <Route path="/account/personal-info" component={PersonalInfo} />
-      
+
       {/* Shared Routes */}
       <Route path="/chat" component={Chat} />
       <Route path="/notifications" component={Notifications} />
-      
+
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,9 +1,21 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useLocation } from "wouter";
 
 type UserType = "customer" | "errander";
 
-interface UserProfile {
+interface StoredUser {
+  id: number;
   name: string;
+  email: string;
+  mobileNo?: string;
+  isSP: boolean;
+}
+
+interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  mobileNo: string;
   role: UserType;
   avatar: string;
 }
@@ -12,42 +24,80 @@ interface UserContextType {
   user: UserProfile;
   setUser: (user: UserProfile) => void;
   updateAvatar: (newAvatar: string) => void;
-  switchRole: () => void;
+  logout: () => void;
+  isAuthenticated: boolean;
 }
 
-const defaultCustomerImage = "https://ui-avatars.com/api/?name=Alex+Kemboi&background=random";
-const defaultErranderImage = "https://ui-avatars.com/api/?name=Errander+Prime&background=0D8ABC&color=fff";
+const avatarUrl = (name: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c3aed&color=fff&bold=true`;
+
+/** Parse the stored user from localStorage (set by auth after OTP verify). */
+function loadUserFromStorage(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const stored: StoredUser = JSON.parse(raw);
+    return {
+      id: stored.id,
+      name: stored.name,
+      email: stored.email,
+      mobileNo: stored.mobileNo ?? "",
+      role: stored.isSP ? "errander" : "customer",
+      avatar: avatarUrl(stored.name),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const GUEST: UserProfile = {
+  id: 0,
+  name: "Guest",
+  email: "",
+  mobileNo: "",
+  role: "customer",
+  avatar: avatarUrl("Guest"),
+};
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const searchParams = new URLSearchParams(window.location.search);
-  const roleParam = searchParams.get('role') as UserType | null;
-  const initialRole = roleParam || "customer";
+  const [, setLocation] = useLocation();
+  const [user, setUserState] = useState<UserProfile>(() => loadUserFromStorage() ?? GUEST);
 
-  const [user, setUser] = useState<UserProfile>({
-    name: initialRole === "customer" ? "Alex Kemboi" : "Errander Prime",
-    role: initialRole,
-    avatar: initialRole === "customer" ? defaultCustomerImage : defaultErranderImage
-  });
+  // Re-read from storage whenever the window gains focus (e.g. after OTP verify)
+  useEffect(() => {
+    const handleFocus = () => {
+      const fresh = loadUserFromStorage();
+      if (fresh) setUserState(fresh);
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  const setUser = (u: UserProfile) => {
+    setUserState(u);
+    localStorage.setItem("user", JSON.stringify({
+      id: u.id, name: u.name, email: u.email,
+      mobileNo: u.mobileNo, isSP: u.role === "errander"
+    }));
+  };
 
   const updateAvatar = (newAvatar: string) => {
-    setUser(prev => ({ ...prev, avatar: newAvatar }));
+    setUserState((prev) => ({ ...prev, avatar: newAvatar }));
   };
 
-  const switchRole = () => {
-    setUser(prev => {
-      const newRole = prev.role === "customer" ? "errander" : "customer";
-      return {
-        name: newRole === "customer" ? "Alex Kemboi" : "Errander Prime",
-        role: newRole,
-        avatar: newRole === "customer" ? defaultCustomerImage : defaultErranderImage
-      };
-    });
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUserState(GUEST);
+    setLocation("/auth");
   };
+
+  const isAuthenticated = !!localStorage.getItem("token");
 
   return (
-    <UserContext.Provider value={{ user, setUser, updateAvatar, switchRole }}>
+    <UserContext.Provider value={{ user, setUser, updateAvatar, logout, isAuthenticated }}>
       {children}
     </UserContext.Provider>
   );
