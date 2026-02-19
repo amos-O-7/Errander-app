@@ -3,13 +3,14 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  MapPin, Navigation, Clock, Banknote, Star, 
+import {
+  MapPin, Navigation, Clock, Banknote, Star,
   Briefcase, CheckCircle, Wallet, Image as ImageIcon, MessageSquare,
-  Settings, Filter, ChevronDown, Bell
+  Settings, Filter, ChevronDown, Bell, Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/lib/user-context";
+import { useApiQuery } from "@/lib/use-api";
 import {
   Dialog,
   DialogContent,
@@ -19,64 +20,21 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
-const CATEGORIES = [
-  { id: "all", name: "All Categories" },
-  { id: "cleaning", name: "Cleaning" },
-  { id: "repair", name: "Repair & Maintenance" },
-  { id: "delivery", name: "Delivery" },
-  { id: "moving", name: "Moving" },
-  { id: "beauty", name: "Beauty & Wellness" },
-];
-
-const MOCK_JOBS = [
-  {
-    id: 1,
-    title: "Grocery Shopping",
-    location: "Carrefour, The Hub",
-    distance: "0.8 km",
-    price: "450",
-    urgent: true,
-    category: "delivery"
-  },
-  {
-    id: 2,
-    title: "Deliver Documents",
-    location: "Upper Hill to CBD",
-    distance: "2.1 km",
-    price: "300",
-    urgent: false,
-    category: "delivery"
-  },
-  {
-    id: 3,
-    title: "Fix Leaking Tap",
-    location: "Kileleshwa",
-    distance: "1.2 km",
-    price: "1,500",
-    urgent: true,
-    category: "repair"
-  },
-  {
-    id: 4,
-    title: "General House Cleaning",
-    location: "Kilimani",
-    distance: "3.5 km",
-    price: "2,000",
-    urgent: false,
-    category: "cleaning"
-  }
-];
-
 export default function ErranderHome() {
   const { user } = useUser();
   const [isOnline, setIsOnline] = useState(true);
-  const [specialty, setSpecialty] = useState<string>("delivery"); // Simulating user's registered category
+  const [specialty, setSpecialty] = useState<string>("all");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  // Filter jobs based on specialty
-  const availableJobs = MOCK_JOBS.filter(job => 
-    specialty === "all" || job.category === specialty
-  );
+  const { data: dashboard, isLoading: loadingDashboard } = useApiQuery<any>(["errander", "dashboard"], "/Errander/dashboard");
+  const { data: jobs, isLoading: loadingJobs } = useApiQuery<any[]>(["errander", "jobs", specialty], `/Errander/jobs?category=${specialty}`);
+  const { data: myServices } = useApiQuery<any[]>(["errander", "services"], "/Errander/services");
+  const { data: myBids, isLoading: loadingMyBids } = useApiQuery<any[]>(["errander", "myBids"], "/Errander/bids");
+
+  const categories = [
+    { id: "all", name: "All Categories" },
+    ...(myServices?.map(s => ({ id: s.slug, name: s.categoryName })) || [])
+  ];
 
   return (
     <MobileLayout userType="errander">
@@ -84,22 +42,22 @@ export default function ErranderHome() {
         {/* Header - Status Toggle */}
         <div className="bg-background p-4 sticky top-0 z-10 border-b border-border shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-3">
-             <div className="relative">
-               <div className="h-10 w-10 bg-muted rounded-full overflow-hidden">
-                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-               </div>
-               <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-             </div>
-             <div>
-               <h1 className="font-bold text-sm text-foreground">{user.name}</h1>
-               <div 
-                  className="flex items-center gap-1 text-xs text-blue-600 font-medium cursor-pointer"
-                  onClick={() => setShowCategoryModal(true)}
-               >
-                 {CATEGORIES.find(c => c.id === specialty)?.name || "Select Specialty"}
-                 <ChevronDown size={12} />
-               </div>
-             </div>
+            <div className="relative">
+              <div className="h-10 w-10 bg-muted rounded-full overflow-hidden">
+                <img src={user?.avatar} alt="Profile" className="w-full h-full object-cover" />
+              </div>
+              <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+            </div>
+            <div>
+              <h1 className="font-bold text-sm text-foreground">{user?.name}</h1>
+              <div
+                className="flex items-center gap-1 text-xs text-blue-600 font-medium cursor-pointer"
+                onClick={() => setShowCategoryModal(true)}
+              >
+                {categories.find(c => c.id === specialty)?.name || "Select Specialty"}
+                <ChevronDown size={12} />
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/notifications?role=errander">
@@ -122,11 +80,11 @@ export default function ErranderHome() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2 py-4">
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat: any) => (
                 <Button
                   key={cat.id}
                   variant={specialty === cat.id ? "default" : "outline"}
-                  className={`justify-start ${specialty === cat.id ? "bg-blue-600" : ""}`}
+                  className={`justify-start ${specialty === cat.id ? "bg-blue-600 font-bold" : ""}`}
                   onClick={() => {
                     setSpecialty(cat.id);
                     setShowCategoryModal(false);
@@ -144,20 +102,20 @@ export default function ErranderHome() {
         <div className="p-4 space-y-6">
           {!isOnline ? (
             <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
-               <div className="h-24 w-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                 <Navigation size={40} className="text-muted-foreground" />
-               </div>
-               <h2 className="font-bold text-xl text-foreground">You are offline</h2>
-               <p className="text-muted-foreground max-w-[200px]">Go online to start receiving errand requests nearby.</p>
+              <div className="h-24 w-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Navigation size={40} className="text-muted-foreground" />
+              </div>
+              <h2 className="font-bold text-xl text-foreground">You are offline</h2>
+              <p className="text-muted-foreground max-w-[200px]">Go online to start receiving errand requests nearby.</p>
             </div>
           ) : (
             <>
               {/* Stats Overview */}
               <div className="grid grid-cols-2 gap-3">
-                <StatsCard icon={Star} label="Bids Submitted" value="6" color="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" />
-                <StatsCard icon={Briefcase} label="Pending Errands" value="3" color="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
-                <StatsCard icon={CheckCircle} label="Completed" value="2" color="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" />
-                <StatsCard icon={Wallet} label="Earnings" value="KES 7,300" color="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400" />
+                <StatsCard icon={Star} label="Bids Submitted" value={dashboard?.stats.bidsSubmitted || "0"} color="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" />
+                <StatsCard icon={Briefcase} label="Pending Errands" value={dashboard?.stats.pendingTasks || "0"} color="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
+                <StatsCard icon={CheckCircle} label="Completed" value={dashboard?.stats.completedTasks || "0"} color="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" />
+                <StatsCard icon={Wallet} label="Earnings" value={`KES ${dashboard?.stats.totalEarnings?.toLocaleString() || "0"}`} color="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400" />
               </div>
 
               {/* Quick Actions */}
@@ -173,7 +131,7 @@ export default function ErranderHome() {
                       <p className="text-[10px] text-muted-foreground">View conversations</p>
                     </div>
                   </div>
-                  
+
                   <Link href="/errander/business-photos">
                     <div className="bg-card p-3 rounded-xl border border-border shadow-sm flex items-center gap-3 active:scale-95 transition-transform cursor-pointer">
                       <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500">
@@ -200,16 +158,19 @@ export default function ErranderHome() {
                     <div className="flex items-center gap-2">
                       <h2 className="font-bold text-base text-foreground">Recent Available</h2>
                       <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
-                        {CATEGORIES.find(c => c.id === specialty)?.name} Only
+                        {categories.find((c: any) => c.id === specialty)?.name} Only
                       </Badge>
                     </div>
                     <Button variant="link" className="text-xs h-auto p-0 text-primary">View All</Button>
                   </div>
-                  
-                  {availableJobs.length > 0 ? (
-                    availableJobs.map(job => (
-                      <JobCard 
+
+                  {loadingJobs ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+                  ) : jobs && jobs.length > 0 ? (
+                    jobs.map((job: any) => (
+                      <JobCard
                         key={job.id}
+                        id={job.id}
                         title={job.title}
                         location={job.location}
                         distance={job.distance}
@@ -223,7 +184,7 @@ export default function ErranderHome() {
                       <Briefcase className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
                       <h3 className="font-bold text-foreground">No errands found</h3>
                       <p className="text-sm text-muted-foreground px-4">
-                        There are no available errands in the <strong>{CATEGORIES.find(c => c.id === specialty)?.name}</strong> category right now.
+                        There are no available errands in the <strong>{categories.find((c: any) => c.id === specialty)?.name}</strong> category right now.
                       </p>
                       <Button variant="link" onClick={() => setShowCategoryModal(true)} className="mt-2 text-blue-600">
                         Change Specialty
@@ -233,29 +194,32 @@ export default function ErranderHome() {
                 </TabsContent>
 
                 <TabsContent value="bids" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                   <div className="flex justify-between items-center px-1 mb-2">
+                  <div className="flex justify-between items-center px-1 mb-2">
                     <h2 className="font-bold text-base text-foreground">My Bids</h2>
                     <Button variant="link" className="text-xs h-auto p-0 text-primary">View All</Button>
                   </div>
 
-                  <JobCard 
-                    title="Office Cleaning"
-                    location="Westlands"
-                    distance="4.2 km"
-                    price="1,200"
-                    urgent={false}
-                    type="bid"
-                    bidStatus="Pending"
-                  />
-                   <JobCard 
-                    title="Furniture Assembly"
-                    location="Kilimani"
-                    distance="1.5 km"
-                    price="800"
-                    urgent={false}
-                    type="bid"
-                    bidStatus="Rejected"
-                  />
+                  {loadingMyBids ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+                  ) : myBids && myBids.length > 0 ? (
+                    myBids.map((bid: any) => (
+                      <JobCard
+                        key={bid.id}
+                        id={bid.taskId}
+                        title={bid.taskTitle}
+                        location={bid.locationName}
+                        distance={`${bid.distance || "?"} km`}
+                        price={bid.amount}
+                        urgent={false}
+                        type="bid"
+                        bidStatus={bid.statusName}
+                      />
+                    ))
+                  ) : (
+                    <div className="text-center py-10 bg-card rounded-2xl border border-dashed border-border text-muted-foreground">
+                      No bids submitted yet.
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </>
@@ -282,7 +246,7 @@ function StatsCard({ icon: Icon, label, value, color }: any) {
 
 function JobCard({ title, location, distance, price, urgent, type, bidStatus }: any) {
   const isAvailable = type === 'available';
-  
+
   return (
     <div className="bg-card p-4 rounded-2xl shadow-sm border border-border hover:border-primary/50 transition-colors cursor-pointer group relative overflow-hidden">
       {urgent && isAvailable && (
@@ -290,13 +254,13 @@ function JobCard({ title, location, distance, price, urgent, type, bidStatus }: 
           URGENT
         </div>
       )}
-      
+
       {type === 'bid' && bidStatus && (
         <div className={`absolute top-0 right-0 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg ${bidStatus === 'Pending' ? 'bg-orange-400' : 'bg-muted-foreground'}`}>
           {bidStatus.toUpperCase()}
         </div>
       )}
-      
+
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{title}</h3>

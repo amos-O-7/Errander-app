@@ -1,9 +1,14 @@
 import { MobileLayout } from "@/components/mobile-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, CheckCircle, XCircle, ChevronRight, MapPin, Calendar, FileText } from "lucide-react";
+import { Clock, CheckCircle, XCircle, ChevronRight, MapPin, Calendar, FileText, Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { useApiQuery } from "@/lib/use-api";
 
 export default function CustomerActivity() {
+  const { data: activeTasks, isLoading: loadingActive } = useApiQuery<any[]>(["tasks", "active"], "/tasks?filter=active");
+  const { data: completedTasks, isLoading: loadingCompleted } = useApiQuery<any[]>(["tasks", "completed"], "/tasks?filter=completed");
+  const { data: cancelledTasks, isLoading: loadingCancelled } = useApiQuery<any[]>(["tasks", "cancelled"], "/tasks?filter=cancelled");
+
   return (
     <MobileLayout userType="customer">
       <div className="flex flex-col h-full bg-gray-50">
@@ -20,52 +25,57 @@ export default function CustomerActivity() {
             </TabsList>
 
             <TabsContent value="active" className="space-y-4">
-              <ActivityCard 
-                status="in_progress"
-                title="Grocery Shopping"
-                date="Today, 2:30 PM"
-                provider="David M."
-                price="KES 550"
-                id="123"
-              />
-              <ActivityCard 
-                status="bidding"
-                title="Fix Leaking Tap"
-                date="Today, 4:00 PM"
-                provider="3 Bids"
-                price="Est. KES 1500"
-                id="124"
-              />
+              {loadingActive ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+              ) : activeTasks?.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">No active errands</div>
+              ) : activeTasks?.map((task: any) => (
+                <ActivityCard
+                  key={task.id}
+                  id={task.id}
+                  status={task.statusId === 1 ? "bidding" : "in_progress"}
+                  title={task.title}
+                  date={new Date(task.createdAt).toLocaleDateString()}
+                  provider={task.provider}
+                  price={task.price}
+                />
+              ))}
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-4">
-              <ActivityCard 
-                status="completed"
-                title="House Cleaning"
-                date="May 28, 2025"
-                provider="Sarah K."
-                price="KES 2,000"
-                id="101"
-              />
-              <ActivityCard 
-                status="completed"
-                title="Document Delivery"
-                date="May 15, 2025"
-                provider="John O."
-                price="KES 300"
-                id="98"
-              />
+              {loadingCompleted ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+              ) : completedTasks?.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">No completed errands</div>
+              ) : completedTasks?.map((task: any) => (
+                <ActivityCard
+                  key={task.id}
+                  id={task.id}
+                  status="completed"
+                  title={task.title}
+                  date={new Date(task.createdAt).toLocaleDateString()}
+                  provider={task.provider}
+                  price={task.price}
+                />
+              ))}
             </TabsContent>
 
             <TabsContent value="cancelled" className="space-y-4">
-              <ActivityCard 
-                status="cancelled"
-                title="Moving Help"
-                date="May 10, 2025"
-                provider="-"
-                price="KES 4,500"
-                id="85"
-              />
+              {loadingCancelled ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+              ) : cancelledTasks?.length === 0 ? (
+                <div className="text-center p-8 text-gray-500">No cancelled errands</div>
+              ) : cancelledTasks?.map((task: any) => (
+                <ActivityCard
+                  key={task.id}
+                  id={task.id}
+                  status="cancelled"
+                  title={task.title}
+                  date={new Date(task.createdAt).toLocaleDateString()}
+                  provider={task.provider}
+                  price={task.price}
+                />
+              ))}
             </TabsContent>
           </Tabs>
         </div>
@@ -76,7 +86,7 @@ export default function CustomerActivity() {
 
 function ActivityCard({ status, title, date, provider, price, id }: any) {
   const getStatusColor = (s: string) => {
-    switch(s) {
+    switch (s) {
       case 'in_progress': return 'bg-blue-100 text-blue-700';
       case 'bidding': return 'bg-yellow-100 text-yellow-700';
       case 'completed': return 'bg-green-100 text-green-700';
@@ -86,7 +96,7 @@ function ActivityCard({ status, title, date, provider, price, id }: any) {
   };
 
   const getStatusText = (s: string) => {
-    switch(s) {
+    switch (s) {
       case 'in_progress': return 'In Progress';
       case 'bidding': return 'Bidding';
       case 'completed': return 'Completed';
@@ -96,7 +106,7 @@ function ActivityCard({ status, title, date, provider, price, id }: any) {
   };
 
   const getIcon = (s: string) => {
-    switch(s) {
+    switch (s) {
       case 'in_progress': return <Clock size={14} />;
       case 'bidding': return <FileText size={14} />;
       case 'completed': return <CheckCircle size={14} />;
@@ -106,8 +116,8 @@ function ActivityCard({ status, title, date, provider, price, id }: any) {
   };
 
   // Determine link based on status
-  const link = status === 'in_progress' ? `/customer/errand/${id}` : 
-               status === 'bidding' ? `/customer/errand/${id}/bids` : '#';
+  const link = status === 'in_progress' ? `/customer/errand/${id}` :
+    status === 'bidding' ? `/customer/errand/${id}/bids` : '#';
 
   return (
     <Link href={link}>
@@ -117,18 +127,18 @@ function ActivityCard({ status, title, date, provider, price, id }: any) {
             {getIcon(status)}
             {getStatusText(status)}
           </div>
-          <span className="font-bold text-gray-900">{price}</span>
+          <span className="font-bold text-gray-900">KES {price}</span>
         </div>
-        
+
         <h3 className="font-bold text-gray-900 text-lg mb-1">{title}</h3>
-        
+
         <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-50">
           <div className="flex items-center gap-1">
             <Calendar size={12} /> {date}
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-400">Provider:</span> 
-            <span className="font-medium text-gray-700">{provider}</span>
+            <span className="text-gray-400">Provider:</span>
+            <span className="font-medium text-gray-700">{provider || (status === 'bidding' ? 'Bidding in progress' : '-')}</span>
           </div>
         </div>
       </div>
