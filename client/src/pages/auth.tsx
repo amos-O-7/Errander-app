@@ -100,16 +100,16 @@ export default function Auth() {
         </div>
 
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 p-1 rounded-full h-12">
+          <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted p-1 rounded-full h-12">
             <TabsTrigger
               value="login"
-              className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm h-10 transition-all"
+              className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 transition-all"
             >
               Login
             </TabsTrigger>
             <TabsTrigger
               value="register"
-              className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm h-10 transition-all"
+              className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm h-10 transition-all"
             >
               Sign Up
             </TabsTrigger>
@@ -132,7 +132,7 @@ export default function Auth() {
                   placeholder="john@example.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  className="h-12 rounded-xl border-gray-200 focus:border-primary focus:ring-primary bg-gray-50"
+                  className="h-12 rounded-xl border-input focus:border-primary focus:ring-primary bg-muted/50"
                   required
                 />
               </div>
@@ -144,7 +144,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  className="h-12 rounded-xl border-gray-200 focus:border-primary focus:ring-primary bg-gray-50"
+                  className="h-12 rounded-xl border-input focus:border-primary focus:ring-primary bg-muted/50"
                   required
                 />
               </div>
@@ -172,7 +172,7 @@ export default function Auth() {
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => { setName(e.target.value); setError(""); }}
-                  className="h-12 rounded-xl bg-gray-50"
+                  className="h-12 rounded-xl bg-muted/50"
                   required
                 />
               </div>
@@ -185,7 +185,7 @@ export default function Auth() {
                   placeholder="john@example.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  className="h-12 rounded-xl bg-gray-50"
+                  className="h-12 rounded-xl bg-muted/50"
                   required
                 />
               </div>
@@ -197,7 +197,7 @@ export default function Auth() {
                   placeholder="0712 345 678"
                   value={mobileNo}
                   onChange={(e) => setMobileNo(e.target.value)}
-                  className="h-12 rounded-xl bg-gray-50"
+                  className="h-12 rounded-xl bg-muted/50"
                 />
               </div>
 
@@ -208,7 +208,7 @@ export default function Auth() {
                   type="password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  className="h-12 rounded-xl bg-gray-50"
+                  className="h-12 rounded-xl bg-muted/50"
                   required
                 />
               </div>
