@@ -69,6 +69,7 @@ function Router() {
 
       {/* Shared Routes */}
       <Route path="/chat" component={Chat} />
+      <Route path="/messages/:taskId" component={Chat} />
       <Route path="/notifications" component={Notifications} />
 
       <Route component={NotFound} />

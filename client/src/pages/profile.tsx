@@ -7,13 +7,31 @@ import {
   Shield, CreditCard, HelpCircle, ChevronRight, Camera
 } from "lucide-react";
 import { Link } from "wouter";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useUser } from "@/lib/user-context";
+import { useApiQuery } from "@/lib/use-api";
 
 export default function Profile() {
   const { theme, setTheme } = useTheme();
-  const { user, updateAvatar, logout } = useUser();
+  const { user, updateAvatar, logout, setUser } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync fresh profile from server on every visit
+  const { data: serverProfile } = useApiQuery<any>(["profile"], "/profile");
+  useEffect(() => {
+    if (serverProfile) {
+      setUser({
+        id: serverProfile.id,
+        name: serverProfile.name,
+        email: serverProfile.email,
+        mobileNo: serverProfile.mobileNo ?? "",
+        role: serverProfile.isSP ? "errander" : "customer",
+        avatar: serverProfile.avatarUrl ?? user.avatar,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverProfile?.id]);
+
 
   const handleImageClick = () => {
     fileInputRef.current?.click();

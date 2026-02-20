@@ -244,7 +244,7 @@ function StatsCard({ icon: Icon, label, value, color }: any) {
   );
 }
 
-function JobCard({ title, location, distance, price, urgent, type, bidStatus }: any) {
+function JobCard({ id, title, location, distance, price, urgent, type, bidStatus }: any) {
   const isAvailable = type === 'available';
 
   return (
@@ -256,7 +256,7 @@ function JobCard({ title, location, distance, price, urgent, type, bidStatus }: 
       )}
 
       {type === 'bid' && bidStatus && (
-        <div className={`absolute top-0 right-0 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg ${bidStatus === 'Pending' ? 'bg-orange-400' : 'bg-muted-foreground'}`}>
+        <div className={`absolute top-0 right-0 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg ${bidStatus === 'Pending' ? 'bg-orange-400' : bidStatus === 'Accepted' ? 'bg-green-500' : 'bg-muted-foreground'}`}>
           {bidStatus.toUpperCase()}
         </div>
       )}
@@ -292,7 +292,7 @@ function JobCard({ title, location, distance, price, urgent, type, bidStatus }: 
           <Button variant="outline" className="rounded-xl h-10 border-border hover:bg-muted text-muted-foreground">
             Decline
           </Button>
-          <Link href="/errander/errand/123">
+          <Link href={`/errander/errand/${id}`}>
             <Button className="w-full rounded-xl h-10 font-bold shadow-md shadow-primary/20">
               Submit Bid
             </Button>
@@ -306,3 +306,4 @@ function JobCard({ title, location, distance, price, urgent, type, bidStatus }: 
     </div>
   );
 }
+

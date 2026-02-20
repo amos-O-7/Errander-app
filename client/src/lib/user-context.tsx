@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useLocation } from "wouter";
+import { setupAuthInterceptor } from "./api";
 
 type UserType = "customer" | "errander";
 
@@ -31,7 +32,7 @@ interface UserContextType {
 const avatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c3aed&color=fff&bold=true`;
 
-/** Parse the stored user from localStorage (set by auth after OTP verify). */
+/** Parse the stored user from localStorage (set after OTP verify). */
 function loadUserFromStorage(): UserProfile | null {
   try {
     const raw = localStorage.getItem("user");
@@ -63,38 +64,64 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
+
+  // Load initial user from storage
   const [user, setUserState] = useState<UserProfile>(() => loadUserFromStorage() ?? GUEST);
 
-  // Re-read from storage whenever the window gains focus (e.g. after OTP verify)
+  // Reactive isAuthenticated — tracks token presence in state, not on every render
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    () => !!localStorage.getItem("token")
+  );
+
+  // Logout function — stable reference via useCallback to avoid re-renders
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.clear();
+    setUserState(GUEST);
+    setIsAuthenticated(false);
+    // Clear React Query cache to prevent cross-user data leakage
+    import("./queryClient").then(({ queryClient }) => queryClient.clear());
+    setLocation("/auth");
+  }, [setLocation]);
+
+  // Wire 401 interceptor so the API layer can trigger logout on session expiry
+  useEffect(() => {
+    setupAuthInterceptor(logout);
+  }, [logout]);
+
+  // Re-read from storage when window gains focus (e.g. after OTP verify in a different tab)
   useEffect(() => {
     const handleFocus = () => {
       const fresh = loadUserFromStorage();
-      if (fresh) setUserState(fresh);
+      const hasToken = !!localStorage.getItem("token");
+      if (fresh && hasToken) {
+        setUserState(fresh);
+        setIsAuthenticated(true);
+      } else if (!hasToken) {
+        setUserState(GUEST);
+        setIsAuthenticated(false);
+      }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  const setUser = (u: UserProfile) => {
+  const setUser = useCallback((u: UserProfile) => {
     setUserState(u);
+    setIsAuthenticated(true);
     localStorage.setItem("user", JSON.stringify({
-      id: u.id, name: u.name, email: u.email,
-      mobileNo: u.mobileNo, isSP: u.role === "errander"
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      mobileNo: u.mobileNo,
+      isSP: u.role === "errander",
     }));
-  };
+  }, []);
 
-  const updateAvatar = (newAvatar: string) => {
+  const updateAvatar = useCallback((newAvatar: string) => {
     setUserState((prev) => ({ ...prev, avatar: newAvatar }));
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUserState(GUEST);
-    setLocation("/auth");
-  };
-
-  const isAuthenticated = !!localStorage.getItem("token");
+  }, []);
 
   return (
     <UserContext.Provider value={{ user, setUser, updateAvatar, logout, isAuthenticated }}>

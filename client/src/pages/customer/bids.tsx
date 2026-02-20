@@ -15,7 +15,7 @@ export default function CustomerBids() {
   const { data: bids, isLoading: loadingBids } = useApiQuery<any[]>(["bids", taskId], `/tasks/${taskId}/bids`);
 
   const acceptBidMutation = useApiMutation<any, number>(
-    (bidId: number) => `/tasks/${taskId}/bids/${bidId}/accept`,
+    (bidId: number) => `/tasks/${taskId}/accept-bid/${bidId}`,
     {
       onSuccess: () => {
         setLocation(`/customer/errand/${taskId}`);
@@ -74,6 +74,7 @@ export default function CustomerBids() {
               onClick={handleCancelTask}
               disabled={cancelTaskMutation.isPending}
               className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8"
+              title="Cancel errand"
             >
               {cancelTaskMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Cancel Errand"}
             </Button>
@@ -94,10 +95,10 @@ export default function CustomerBids() {
               <BidCard
                 key={bid.id}
                 id={bid.id}
-                name={bid.providerName}
-                rating={bid.providerRating || "0.0"}
-                reviews={bid.providerReviewsCount || "0"}
-                price={bid.amount}
+                name={bid.bidderName}
+                rating={bid.bidderRating || "New"}
+                reviews={bid.bidderReviews || 0}
+                price={bid.minAmount}
                 distance={`${bid.distance || "?"} km`}
                 verified={bid.isProviderVerified}
                 onSelect={() => setSelectedBid(bid)}
