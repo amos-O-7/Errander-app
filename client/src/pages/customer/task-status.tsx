@@ -1,19 +1,24 @@
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
-import { Phone, MessageSquare, CheckCircle2, Loader2, ArrowLeft, Star } from "lucide-react";
+import { Phone, MessageSquare, CheckCircle2, Loader2, ArrowLeft, Star, Smartphone } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useState } from "react";
 import { useApiQuery, useApiMutation } from "@/lib/use-api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/lib/user-context";
 
 export default function TaskStatus() {
   const { id: taskId } = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { user } = useUser();
   const queryClient = useQueryClient();
   const [showRating, setShowRating] = useState(false);
   const [ratingValue, setRatingValue] = useState(0);
   const [comment, setComment] = useState("");
   const [hoverRating, setHoverRating] = useState(0);
+  const [stkSent, setStkSent] = useState(false);
 
   const { data: task, isLoading } = useApiQuery<any>(
     ["task", taskId],
@@ -32,6 +37,26 @@ export default function TaskStatus() {
     }
   );
 
+  const payMutation = useApiMutation<any, { taskId: number; amount: number; phoneNumber?: string }>(
+    () => "/payments/stk-push",
+    {
+      onSuccess: (data) => {
+        setStkSent(true);
+        toast({
+          title: "M-Pesa Prompt Sent!",
+          description: data?.message ?? "Check your phone and enter your M-Pesa PIN.",
+        });
+      },
+      onError: (err: Error) => {
+        toast({
+          title: "Payment Failed",
+          description: err.message,
+          variant: "destructive"
+        });
+      }
+    }
+  );
+
   const rateMutation = useApiMutation<any, { rating: number; comment: string }>(
     () => `/tasks/${taskId}/rate`,
     {
@@ -40,6 +65,16 @@ export default function TaskStatus() {
       }
     }
   );
+
+  const handlePay = () => {
+    const provider = task?.acceptedProvider;
+    const amount = provider?.amount ?? 1;
+    payMutation.mutate({
+      taskId: Number(taskId),
+      amount: Number(amount),
+      phoneNumber: user?.mobileNo,
+    });
+  };
 
   const handleComplete = () => {
     if (confirm("Mark this errand as completed?")) {
@@ -196,13 +231,39 @@ export default function TaskStatus() {
               )}
 
               {isInProgress && (
-                <Button
-                  onClick={handleComplete}
-                  disabled={completeMutation.isPending}
-                  className="w-full h-12 rounded-xl font-bold bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {completeMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Mark as Completed"}
-                </Button>
+                <div className="space-y-3">
+                  {/* ─ Pay via M-Pesa ───────────────────────── */}
+                  {!stkSent ? (
+                    <Button
+                      onClick={handlePay}
+                      disabled={payMutation.isPending}
+                      className="w-full h-12 rounded-xl font-bold bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {payMutation.isPending
+                        ? <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                        : <Smartphone size={18} className="mr-2" />}
+                      Pay via M-Pesa
+                    </Button>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                      <Smartphone className="mx-auto mb-2 text-green-600" size={24} />
+                      <p className="font-bold text-green-800 text-sm">M-Pesa prompt sent!</p>
+                      <p className="text-xs text-green-600 mt-1">Enter your PIN on your phone, then mark as complete below.</p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleComplete}
+                    disabled={completeMutation.isPending || !stkSent}
+                    variant="outline"
+                    className="w-full h-12 rounded-xl font-bold border-2"
+                  >
+                    {completeMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Mark as Completed"}
+                  </Button>
+                  {!stkSent && (
+                    <p className="text-xs text-center text-gray-400">Pay first to unlock the completion button</p>
+                  )}
+                </div>
               )}
 
               {isCompleted && !showRating && (

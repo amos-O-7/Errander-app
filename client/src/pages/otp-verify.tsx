@@ -3,9 +3,11 @@ import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { Loader2, Mail, RefreshCw, ShieldCheck } from "lucide-react";
+import { useUser } from "@/lib/user-context";
 
 export default function OtpVerify() {
     const [, setLocation] = useLocation();
+    const { setUser } = useUser();
     const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
@@ -80,6 +82,17 @@ export default function OtpVerify() {
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             sessionStorage.removeItem("pendingUserId");
+
+            // ✅ Update React context immediately so Home shows real name on first render
+            const u = data.user;
+            setUser({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                mobileNo: u.mobileNo ?? u.mobile_no ?? "",
+                role: u.isSP ? "errander" : "customer",
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff&bold=true`,
+            });
 
             // Redirect based on role
             setLocation(data.user.isSP ? "/errander/home" : "/customer/home");

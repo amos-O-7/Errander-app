@@ -78,7 +78,7 @@ export default function PostTask() {
     <MobileLayout hideNav>
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b flex items-center gap-4 bg-white sticky top-0 z-10">
+        <div className="p-4 border-b flex items-center gap-4 bg-background sticky top-0 z-10 dark:border-gray-800">
           <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full">
             <ArrowLeft size={20} />
           </button>
@@ -106,7 +106,7 @@ export default function PostTask() {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-white border-t">
+        <div className="p-4 bg-background border-t dark:border-gray-800">
           <Button
             disabled={createTaskMutation.isPending || (step === 1 && !formData.errandId) || (step === 2 && !formData.areaId)}
             onClick={step === 4 ? handlePost : nextStep}
@@ -139,7 +139,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
       <div className="space-y-2">
         <Label className="text-base font-semibold">Service Errand Category <span className="text-red-500">*</span></Label>
         <select
-          className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4"
+          className="w-full h-12 rounded-xl border border-gray-200 bg-background transition-all dark:border-gray-800 px-4"
           value={formData.categoryId}
           onChange={(e) => updateForm({ categoryId: e.target.value, errandId: "" })}
         >
@@ -153,7 +153,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
       <div className="space-y-2">
         <Label className="text-base font-semibold">Select Errand <span className="text-red-500">*</span></Label>
         <select
-          className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4"
+          className="w-full h-12 rounded-xl border border-gray-200 bg-background transition-all dark:border-gray-800 px-4"
           value={formData.errandId}
           disabled={!formData.categoryId}
           onChange={(e) => updateForm({ errandId: e.target.value })}
@@ -163,7 +163,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
             <option key={e.id} value={e.id.toString()}>{e.name}</option>
           ))}
         </select>
-      </div>
+      </div >
 
       <div className="space-y-2">
         <Label className="text-base font-semibold">Description</Label>
@@ -185,7 +185,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
           <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -246,7 +246,7 @@ function StepLocation({ formData, updateForm }: { formData: FormData; updateForm
       <div className="space-y-2">
         <Label className="text-base font-semibold">Area <span className="text-red-500">*</span></Label>
         <select
-          className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4"
+          className="w-full h-12 rounded-xl border border-gray-200 bg-background transition-all dark:border-gray-800 px-4"
           value={formData.areaId}
           disabled={!formData.locationId}
           onChange={(e) => updateForm({ areaId: e.target.value })}
@@ -256,14 +256,14 @@ function StepLocation({ formData, updateForm }: { formData: FormData; updateForm
             <option key={a.id} value={a.id.toString()}>{a.name}</option>
           ))}
         </select>
-      </div>
+      </div >
 
       {/* Fake Map */}
-      <div className="h-32 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 relative overflow-hidden">
+      < div className="h-32 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 relative overflow-hidden" >
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <span className="font-medium bg-white px-3 py-1 rounded-full shadow-sm z-10">Map Preview</span>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 

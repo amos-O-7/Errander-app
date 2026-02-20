@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,6 +20,7 @@ import BusinessPhotos from "@/pages/errander/business-photos";
 import VerificationPending from "@/pages/errander/verification-pending";
 import CompleteProfile from "@/pages/errander/complete-profile";
 import * as React from "react";
+import { useEffect } from "react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import Profile from "@/pages/profile";
@@ -27,6 +28,7 @@ import Chat from "@/pages/chat";
 import Notifications from "@/pages/notifications";
 import PersonalInfo from "@/pages/account/personal-info";
 import { UserProvider } from "@/lib/user-context";
+
 
 // Add global styles for hide-scrollbar utility
 const GlobalStyles = () => (
@@ -40,6 +42,27 @@ const GlobalStyles = () => (
     }
   `}</style>
 );
+
+import { App as CapApp } from "@capacitor/app";
+
+// ─── Capacitor back-button handler ───────────────────────────────────────────
+function BackButtonHandler() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    const handler = CapApp.addListener("backButton", ({ canGoBack }: { canGoBack: boolean }) => {
+      const rootPages = ["/customer/home", "/errander/home", "/auth", "/"];
+      if (rootPages.includes(location) || !canGoBack) {
+        CapApp.exitApp();
+      } else {
+        window.history.back();
+      }
+    });
+    return () => { handler.then((h: any) => h.remove()); };
+  }, [location]);
+
+  return null;
+}
 
 function Router() {
   return (
@@ -84,6 +107,7 @@ function App() {
         <UserProvider>
           <GlobalStyles />
           <Toaster />
+          <BackButtonHandler />
           <Router />
         </UserProvider>
       </QueryClientProvider>
@@ -92,3 +116,4 @@ function App() {
 }
 
 export default App;
+
