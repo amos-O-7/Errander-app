@@ -144,7 +144,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
           onChange={(e) => updateForm({ categoryId: e.target.value, errandId: "" })}
         >
           <option value="">{loadingCats ? "Loading categories..." : "Select Errand Category"}</option>
-          {categories?.map(c => (
+          {((categories as any)?.data as any[])?.map(c => (
             <option key={c.id} value={c.id.toString()}>{c.name}</option>
           ))}
         </select>
@@ -159,7 +159,7 @@ function StepDetails({ formData, updateForm }: { formData: FormData; updateForm:
           onChange={(e) => updateForm({ errandId: e.target.value })}
         >
           <option value="">{loadingErrands ? "Loading errands..." : "Select an errand"}</option>
-          {errands?.map(e => (
+          {((errands as any)?.errands as any[])?.map(e => (
             <option key={e.id} value={e.id.toString()}>{e.name}</option>
           ))}
         </select>

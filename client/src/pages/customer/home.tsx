@@ -184,7 +184,7 @@ export default function CustomerHome() {
             {loadingCats ? (
               <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
             ) : (
-              categories?.map((cat: any) => {
+              ((categories as any)?.data as any[])?.map((cat: any) => {
                 let Icon = Package;
                 let color = "bg-gray-100 text-gray-600";
 
