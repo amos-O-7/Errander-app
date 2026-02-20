@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Banknote, Clock, CheckCircle, Lock, Phone, Mail, MessageSquare, AlertCircle, Loader2, Smartphone, ShieldAlert } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useApiQuery, useApiMutation } from "@/lib/use-api";
+import { useUser } from "@/lib/user-context";
 import { useToast } from "@/hooks/use-toast";
+
 import {
   Dialog,
   DialogContent,
@@ -27,13 +29,15 @@ export default function ErranderTaskDetails() {
   const isVerified = true;
 
   const { data: task, isLoading: loadingTask } = useApiQuery<any>(["tasks", id], `/tasks/${id}`);
-  const { data: existingBid, isLoading: loadingBid } = useApiQuery<any>(["tasks", id, "my-bid"], `/tasks/${id}/my-bid`);
+  const { user } = useUser();
 
   useEffect(() => {
-    if (existingBid) {
-      setStep("submitted");
+    if (task?.bids && user?.id) {
+      // Check if the logged-in SP already has a bid on this task
+      const alreadyBid = task.bids.some((b: any) => b.userId === user.id && b.statusId !== 3);
+      if (alreadyBid) setStep("submitted");
     }
-  }, [existingBid]);
+  }, [task, user?.id]);
 
   const handleBidClick = () => {
     if (!isVerified) {
@@ -68,7 +72,7 @@ export default function ErranderTaskDetails() {
     setStep("accepted_locked");
   };
 
-  if (loadingTask || loadingBid) {
+  if (loadingTask) {
     return (
       <MobileLayout hideNav>
         <div className="flex items-center justify-center h-full">
@@ -89,6 +93,9 @@ export default function ErranderTaskDetails() {
     );
   }
 
+  // Find this SP's own bid from the task
+  const myBid = task?.bids?.find((b: any) => b.statusId !== 3) ?? null;
+
   if (step === "accepted_unlocked") {
     return <AcceptedUnlockedView task={task} />;
   }
@@ -98,7 +105,7 @@ export default function ErranderTaskDetails() {
   }
 
   if (step === "submitted") {
-    return <BidSubmittedView task={task} bid={existingBid || submitBidMutation.data} onSimulateAccept={simulateCustomerAcceptance} />;
+    return <BidSubmittedView task={task} bid={myBid || submitBidMutation.data} onSimulateAccept={simulateCustomerAcceptance} />;
   }
 
   if (step === "bid") {
@@ -121,7 +128,9 @@ export default function ErranderTaskDetails() {
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold mb-1">{task.title}</h2>
-            <p className="text-sm text-gray-500 mb-4">Posted: {task.posted}</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Posted: {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ""}
+            </p>
 
             <div className="aspect-video w-full rounded-xl bg-gray-100 mb-4 overflow-hidden relative">
               <img src={task.image} alt="Errand" className="object-cover w-full h-full" />
@@ -356,23 +365,6 @@ function BidSubmittedView({ task, bid, onSimulateAccept }: any) {
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <Button
-              onClick={onSimulateAccept}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
-            >
-              Wait for Customer
-            </Button>
-          </div>
-          <div className="flex flex-col gap-2 mt-4 text-center">
-            <Button variant="ghost" className="text-red-500 text-sm h-8 hover:bg-red-50 hover:text-red-600">
-              Withdraw Bid
-            </Button>
-            <p className="text-[10px] text-gray-400">
-              * Simulation Button below for Prototype Testing
-            </p>
-            <Button variant="outline" size="sm" onClick={onSimulateAccept} className="mx-auto h-8">
-              Simulate Customer Acceptance
-            </Button>
           </div>
         </div>
       </div>
@@ -418,18 +410,16 @@ function AcceptedLockedView({ task, onUnlock }: any) {
               </div>
             </div>
 
-            {/* Content behind blur */}
+            {/* Blurred contact info - unlocked on payment */}
             <div className="opacity-50 blur-[1px]">
               <div className="h-16 w-16 bg-gray-200 rounded-full mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-1">Customer Name</h3>
+              <h3 className="text-xl font-bold mb-1">
+                {task.acceptedProvider?.name ?? "Customer Name"}
+              </h3>
               <p className="text-gray-500 mb-4">+254 7XX XXX XXX</p>
               <div className="flex gap-4 justify-center">
-                <a href={`tel:${task.customer.phone}`}>
-                  <Button size="icon" variant="outline" className="rounded-full"><Phone size={18} /></Button>
-                </a>
-                <Link href="/chat?role=errander">
-                  <Button size="icon" variant="outline" className="rounded-full"><MessageSquare size={18} /></Button>
-                </Link>
+                <Button size="icon" variant="outline" className="rounded-full"><Phone size={18} /></Button>
+                <Button size="icon" variant="outline" className="rounded-full"><MessageSquare size={18} /></Button>
               </div>
             </div>
           </div>
@@ -515,19 +505,14 @@ function AcceptedUnlockedView({ task }: any) {
 
           <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
             <div className="h-12 w-12 rounded-full bg-white text-green-600 flex items-center justify-center font-bold text-lg">
-              {task.customer.name.charAt(0)}
+              {(task.acceptedProvider?.name ?? "C").charAt(0)}
             </div>
             <div className="flex-1">
-              <h2 className="font-bold text-lg">{task.customer.name}</h2>
+              <h2 className="font-bold text-lg">{task.acceptedProvider?.name ?? "Customer"}</h2>
               <p className="text-green-100 text-sm">Customer</p>
             </div>
             <div className="flex gap-2">
-              <a href={`tel:${task.customer.phone}`}>
-                <Button size="icon" className="rounded-full bg-white text-green-600 hover:bg-gray-100 shadow-sm">
-                  <Phone size={18} />
-                </Button>
-              </a>
-              <Link href="/chat?role=errander">
+              <Link href={`/messages/${task.id}`}>
                 <Button size="icon" className="rounded-full bg-white text-green-600 hover:bg-gray-100 shadow-sm">
                   <MessageSquare size={18} />
                 </Button>
@@ -545,12 +530,12 @@ function AcceptedUnlockedView({ task }: any) {
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500 text-sm">Mobile</span>
-                <span className="font-medium text-gray-900">{task.customer.phone}</span>
+                <span className="font-medium text-gray-900">
+                  {task.acceptedProvider?.phone ?? "Contact unlocked"}
+                </span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500 text-sm">Email</span>
-                <span className="font-medium text-gray-900">{task.customer.email}</span>
-              </div>
+
+
             </div>
           </div>
 

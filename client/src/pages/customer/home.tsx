@@ -31,6 +31,7 @@ export default function CustomerHome() {
   const { data: categories, isLoading: loadingCats } = useApiQuery<any[]>(["categories"], "/categories");
   const { data: activeTasks, isLoading: loadingTasks } = useApiQuery<any[]>(["tasks", "active"], "/tasks?filter=active");
   const { data: allTasks } = useApiQuery<any[]>(["tasks", "all"], "/tasks");
+  const { data: topProviders, isLoading: loadingProviders } = useApiQuery<any[]>(["top-providers"], "/Errander/top-providers?limit=5");
 
   const stats = {
     total: allTasks?.length || 0,
@@ -205,7 +206,7 @@ export default function CustomerHome() {
           </div>
         </div>
 
-        {/* Top Rated Providers Nearby (Replaced Recent & Top Errands) */}
+        {/* Top Rated Providers Nearby */}
         <div className="px-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-foreground">Top Rated Nearby</h2>
@@ -213,20 +214,20 @@ export default function CustomerHome() {
           </div>
 
           <div className="space-y-3">
-            <ProviderCard
-              name="Sarah K."
-              role="Professional Cleaner"
-              rating="4.9"
-              reviews="124"
-              distance="0.8 km"
-            />
-            <ProviderCard
-              name="John O."
-              role="Handyman & Repair"
-              rating="4.8"
-              reviews="89"
-              distance="1.2 km"
-            />
+            {loadingProviders ? (
+              <div className="flex justify-center p-4"><Loader2 className="animate-spin text-primary" /></div>
+            ) : topProviders?.length === 0 ? (
+              <div className="text-center text-muted-foreground text-sm py-6">No providers available yet.</div>
+            ) : topProviders?.map((p: any) => (
+              <ProviderCard
+                key={p.id}
+                name={p.name}
+                role={p.specialty}
+                rating={p.averageRating > 0 ? p.averageRating.toFixed(1) : "New"}
+                reviews={p.reviewCount}
+                avatarUrl={p.avatarUrl}
+              />
+            ))}
           </div>
         </div>
 
@@ -317,11 +318,15 @@ function ServiceCard({ image, title, category }: { image: string, title: string,
   )
 }
 
-function ProviderCard({ name, role, rating, reviews, distance }: any) {
+function ProviderCard({ name, role, rating, reviews, avatarUrl }: any) {
   return (
     <div className="bg-card p-3 rounded-xl border border-border flex items-center gap-3 shadow-sm hover:border-primary/50 transition-colors cursor-pointer">
       <div className="h-12 w-12 rounded-full bg-muted overflow-hidden shrink-0">
-        <img src={`https://ui-avatars.com/api/?name=${name.replace(' ', '+')}&background=random`} alt={name} className="w-full h-full object-cover" />
+        <img
+          src={avatarUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c3aed&color=fff`}
+          alt={name}
+          className="w-full h-full object-cover"
+        />
       </div>
       <div className="flex-1">
         <h4 className="font-bold text-foreground">{name}</h4>
@@ -329,10 +334,8 @@ function ProviderCard({ name, role, rating, reviews, distance }: any) {
       </div>
       <div className="text-right">
         <div className="flex items-center gap-1 justify-end text-xs font-bold text-yellow-500 mb-1">
-          <Star size={12} fill="currentColor" /> {rating} <span className="text-muted-foreground font-normal">({reviews})</span>
-        </div>
-        <div className="flex items-center gap-1 justify-end text-xs text-muted-foreground">
-          <MapPin size={10} /> {distance}
+          <Star size={12} fill="currentColor" />
+          {rating} <span className="text-muted-foreground font-normal">({reviews})</span>
         </div>
       </div>
     </div>

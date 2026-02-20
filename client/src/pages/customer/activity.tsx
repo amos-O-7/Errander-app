@@ -36,8 +36,8 @@ export default function CustomerActivity() {
                   status={task.statusId === 1 ? "bidding" : "in_progress"}
                   title={task.title}
                   date={new Date(task.createdAt).toLocaleDateString()}
-                  provider={task.provider}
-                  price={task.price}
+                  provider={task.providerName}
+                  price={task.budget ?? task.maxBudget}
                 />
               ))}
             </TabsContent>
@@ -54,8 +54,8 @@ export default function CustomerActivity() {
                   status="completed"
                   title={task.title}
                   date={new Date(task.createdAt).toLocaleDateString()}
-                  provider={task.provider}
-                  price={task.price}
+                  provider={task.providerName}
+                  price={task.budget ?? task.maxBudget}
                 />
               ))}
             </TabsContent>
@@ -72,8 +72,8 @@ export default function CustomerActivity() {
                   status="cancelled"
                   title={task.title}
                   date={new Date(task.createdAt).toLocaleDateString()}
-                  provider={task.provider}
-                  price={task.price}
+                  provider={task.providerName}
+                  price={task.budget ?? task.maxBudget}
                 />
               ))}
             </TabsContent>
