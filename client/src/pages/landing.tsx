@@ -1,10 +1,29 @@
+import { useEffect } from "react";
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import heroImage from "@/assets/images/hero-runner.png";
 import { ArrowRight, Star, ShieldCheck, Zap } from "lucide-react";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userRaw = localStorage.getItem("user");
+    if (token && userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        setLocation(user.isSP ? "/errander/home" : "/customer/home");
+      } catch {
+        // corrupt data — clear and stay on landing
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+    }
+  }, []);
+
   return (
     <MobileLayout hideNav>
       <div className="flex flex-col min-h-full">
@@ -23,10 +42,10 @@ export default function Landing() {
           <div className="relative mb-8">
             <div className="absolute top-0 right-0 -z-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl opacity-50"></div>
             <div className="absolute bottom-0 left-0 -z-10 w-48 h-48 bg-secondary/20 rounded-full blur-3xl opacity-50"></div>
-            
-            <img 
-              src={heroImage} 
-              alt="Errand Runner" 
+
+            <img
+              src={heroImage}
+              alt="Errand Runner"
               className="w-full h-auto drop-shadow-xl animate-in fade-in zoom-in duration-700"
             />
           </div>
@@ -34,7 +53,7 @@ export default function Landing() {
           <h2 className="text-4xl font-heading leading-tight mb-4 text-gray-900">
             Get <span className="text-primary">Anything</span><br />Done.
           </h2>
-          
+
           <p className="text-gray-500 text-lg mb-8 leading-relaxed">
             Connect with trusted local runners for errands, delivery, cleaning, and more. Fast & secure.
           </p>
@@ -46,7 +65,7 @@ export default function Landing() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            
+
             <Link href="/auth?role=errander">
               <Button variant="outline" className="w-full h-14 rounded-full text-lg font-medium border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 text-gray-600">
                 I want to earn money

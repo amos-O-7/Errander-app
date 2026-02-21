@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,27 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { Check, Loader2 } from "lucide-react";
+import { useUser } from "@/lib/user-context";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
+  const { setUser } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+
+  // ── Auto redirect if already logged in ─────────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userRaw = localStorage.getItem("user");
+    if (token && userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        setLocation(u.isSP ? "/errander/home" : "/customer/home");
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+    }
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +41,22 @@ export default function Auth() {
   const redirectToOtp = (userId: number) => {
     sessionStorage.setItem("pendingUserId", String(userId));
     setLocation("/auth/verify-otp");
+  };
+
+  // Shared helper — called when we have a token + user without OTP
+  const handleDirectLogin = (data: any) => {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    const u = data.user;
+    setUser({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      mobileNo: u.mobileNo ?? u.mobile_no ?? "",
+      role: u.isSP ? "errander" : "customer",
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff&bold=true`,
+    });
+    setLocation(u.isSP ? "/errander/home" : "/customer/home");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -43,10 +76,8 @@ export default function Auth() {
       if (data.requiresOtp) {
         redirectToOtp(data.userId);
       } else {
-        // Fallback (no OTP) — direct login
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setLocation(data.user.isSP ? "/errander/home" : "/customer/home");
+        // OTP skipped (verified within 30 days) — log in directly
+        handleDirectLogin(data);
       }
     } catch (err: any) {
       setError(err.message);
@@ -78,9 +109,7 @@ export default function Auth() {
       if (data.requiresOtp) {
         redirectToOtp(data.userId);
       } else {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setLocation(data.user.isSP ? "/errander/home" : "/customer/home");
+        handleDirectLogin(data);
       }
     } catch (err: any) {
       setError(err.message);
