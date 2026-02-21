@@ -48,12 +48,22 @@ export default function PostTask() {
   const createTaskMutation = useApiMutation<any, any>("/tasks", {
     onSuccess: (data) => {
       toast({ title: "Errand Posted!", description: "Your errand is now live and accepting bids." });
-      setLocation(`/customer/errand/${data.id}/bids`);
+      // data.id from API response
+      if (data?.id) {
+        setLocation(`/customer/errand/${data.id}/bids`);
+      } else {
+        setLocation("/customer/activity");
+      }
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to post errand", description: error.message, variant: "destructive" });
+      console.error("[PostTask] Failed to create task:", error);
+      const msg = error.message.includes("fetch")
+        ? "Network error — check your connection or log in again."
+        : error.message;
+      toast({ title: "Failed to post errand", description: msg, variant: "destructive" });
     },
   });
+
 
   const handlePost = () => {
     const preferredStartDatetime =
