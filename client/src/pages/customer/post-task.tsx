@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, MapPin, Calendar, Camera, Check, Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { ArrowLeft, MapPin, Calendar, Camera, Check, Loader2, Search } from "lucide-react";
+import { useLocation, useSearch } from "wouter";
 import { useApiQuery, useApiMutation } from "@/lib/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api";
 
 interface FormData {
   categoryId: string;
@@ -24,11 +25,16 @@ interface FormData {
 export default function PostTask() {
   const [step, setStep] = useState(1);
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
 
+  const params = new URLSearchParams(search);
+  const preErrandId = params.get("errandId") ?? "";
+  const preCategory = params.get("category") ?? "";
+
   const [formData, setFormData] = useState<FormData>({
-    categoryId: "",
-    errandId: "",
+    categoryId: "", // resolved from category name after categories load
+    errandId: preErrandId,
     serviceTypeId: "",
     locationId: "",
     areaId: "",
@@ -37,6 +43,28 @@ export default function PostTask() {
     preferredTime: "",
     termsAccepted: false,
   });
+
+  // Resolve category name → id and pre-fill; skip to step 2 if errandId is pre-set
+  useEffect(() => {
+    if (!preErrandId && !preCategory) return;
+    apiFetch<any>("/categories").then((res) => {
+      const cats: any[] = res?.data ?? res ?? [];
+      if (preCategory) {
+        const match = cats.find(
+          (c: any) => c.name.toLowerCase() === preCategory.toLowerCase()
+        );
+        if (match) {
+          setFormData((prev) => ({ ...prev, categoryId: String(match.id), errandId: preErrandId }));
+          if (preErrandId) setStep(2); // skip "What do you need?" — already chosen
+        } else if (preErrandId) {
+          // No exact category name match, but we have an errandId — still skip step 1
+          setFormData((prev) => ({ ...prev, errandId: preErrandId }));
+          setStep(2);
+        }
+      }
+    }).catch(() => {/* ignore */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const nextStep = () => setStep(step + 1);
   const prevStep = () => (step > 1 ? setStep(step - 1) : setLocation("/customer/home"));
@@ -169,6 +197,14 @@ function StepDetails({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+      {/* Pre-fill notice */}
+      {formData.errandId && formData.categoryId && (
+        <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-xl text-sm font-medium">
+          <Search size={16} />
+          Errand pre-selected from your search. Change below if needed.
+        </div>
+      )}
+
       {/* Category */}
       <div className="space-y-2">
         <Label className="text-base font-semibold">

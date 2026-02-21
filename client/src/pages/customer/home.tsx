@@ -2,13 +2,13 @@ import { MobileLayout } from "@/components/mobile-layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Truck, Sparkles, ShoppingBag, Hammer, ArrowRight, Package, Clock, CheckCircle, List, ArrowUpRight, Bell, Star, Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useUser } from "@/lib/user-context";
 import { useApiQuery } from "@/lib/use-api";
+import { useState, useRef } from "react";
 
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-import { useRef } from "react";
 
 // Images from assets
 import cleaningImg from "@/assets/images/House_cleaning_1770118941873.jpg";
@@ -24,9 +24,20 @@ import referralAd from "@/assets/images/ads/referral-ad.jpg";
 
 export default function CustomerHome() {
   const { user } = useUser();
+  const [, setLocation] = useLocation();
+  const [searchQ, setSearchQ] = useState("");
   const plugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   )
+
+  const goSearch = (q = searchQ) => {
+    const trimmed = q.trim();
+    if (trimmed.length > 0) {
+      setLocation(`/customer/search?q=${encodeURIComponent(trimmed)}`);
+    } else {
+      setLocation("/customer/search");
+    }
+  };
 
   const { data: categories, isLoading: loadingCats } = useApiQuery<any[]>(["categories"], "/categories");
   const { data: activeTasks, isLoading: loadingTasks } = useApiQuery<any[]>(["tasks", "active"], "/tasks?filter=active");
@@ -69,8 +80,13 @@ export default function CustomerHome() {
               <Search size={20} />
             </div>
             <Input
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && goSearch()}
+              onClick={() => goSearch()}
               placeholder="Search errands, services, or users..."
-              className="pl-10 h-12 rounded-2xl bg-background border-0 shadow-sm text-base placeholder:text-muted-foreground"
+              className="pl-10 h-12 rounded-2xl bg-background border-0 shadow-sm text-base placeholder:text-muted-foreground cursor-text"
+              readOnly={searchQ.length === 0} // tap on empty → open search page immediately
             />
           </div>
         </div>

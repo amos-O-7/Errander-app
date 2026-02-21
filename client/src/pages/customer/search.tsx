@@ -4,7 +4,7 @@ import {
   Search as SearchIcon, MapPin, Star, ArrowRight,
   TrendingUp, Loader2, X, ArrowLeft, Tag, Wrench, User as UserIcon
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { useApiQuery } from "@/lib/use-api";
 import { apiFetch } from "@/lib/api";
@@ -26,13 +26,19 @@ interface SearchResult {
 
 export default function CustomerSearch() {
   const [, setLocation] = useLocation();
-  const [query, setQuery] = useState("");
+  const urlSearch = useSearch();
+
+  // Pre-fill from home bar's ?q= param
+  const initialQ = new URLSearchParams(urlSearch).get("q") ?? "";
+
+  const [query, setQuery] = useState(initialQ);
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   // Categories always shown when idle
   const { data: categoriesRes } = useApiQuery<any>(["categories"], "/categories");
@@ -44,6 +50,14 @@ export default function CustomerSearch() {
     "/Errander/top-providers?limit=4",
     { enabled: !submittedQuery }
   );
+
+  // Auto-search on mount if the home bar pre-filled a query
+  useEffect(() => {
+    if (initialQ.trim().length > 1) {
+      handleSearch(initialQ.trim());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Debounced real-time suggestions ──────────────────────────────────────────
   useEffect(() => {
