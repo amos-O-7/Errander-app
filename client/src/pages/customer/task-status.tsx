@@ -98,8 +98,11 @@ export default function TaskStatus() {
   }
 
   const provider = task?.acceptedProvider;
-  const isInProgress = task?.statusId === 2;
-  const isCompleted = task?.statusId === 3;
+  // Use the status.name string returned by the API — more reliable than raw integer IDs
+  // which depend on DB seeding order. The API returns Status = task.Status?.Name.
+  const statusName = (task?.status ?? "").toLowerCase();
+  const isInProgress = statusName === "in_progress" || statusName === "in progress" || statusName === "inprogress";
+  const isCompleted = statusName === "completed";
 
   return (
     <MobileLayout hideNav>
